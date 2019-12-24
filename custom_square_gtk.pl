@@ -27,32 +27,64 @@ $window->signal_connect( 'destroy', \&DestroyWindow );
 # en détail les comportements des boîtes dans le chapître sur les conteneurs.
 # Une boîte n'est pas visible. Elle est juste utile pour ranger les widgets
 # qu'elle contient.
-my $box = Gtk2::VBox->new( FALSE, 0 );
+my $box = Gtk2::VBox->new( FALSE, 10 );
 
 # On place la boîte dans la fenêtre.
 $window->add($box);
 
 my %label_for_faces = ();
 my $previous        = ''; 
+my $table = Gtk2::Table->new(4 , 3 , FALSE );
+$table->set_col_spacings(5);
+my $line = 0 ;
 foreach (qw(faces sommet dessous inventaire)) {
-  # creation de la box h
-  my $box2 =  Gtk2::HBox->new( FALSE, 0 );
-  my $label1 = Gtk2::Label->new("!");
-  my $button1= Gtk2::Button->new("Changer $_");
-  my $button_copy= Gtk2::Button->new("Comme $previous");
-  $button1->signal_connect( 'clicked', \&SelectFile, "$_" );
-  $button_copy->signal_connect('clicked' , \&FileCopy, [ "$_" , $previous ]);
-  $box2->pack_start( $label1      , TRUE, TRUE, 0) ;
-  $box2->pack_start( $button1     , TRUE, TRUE, 0) ;
-  $box2->pack_start( $button_copy , TRUE , TRUE , 0);
-  $box->pack_start( $box2 , TRUE, TRUE , 0);
-  $label1->show();
-  $button1->show();
-  $button_copy->show() if $previous;
-  $box2->show;
-  $label_for_faces{$_}=$label1;
-  $previous = $_;
+   my $label1 = Gtk2::Label->new("! Empty !");
+   my $button1= Gtk2::Button->new("Changer $_");
+   my $button_copy= Gtk2::Button->new("Comme $previous");
+
+   $table->attach($label1,0,1,$line,$line+1,'fill','fill',0,0) ;
+   $label1->show;
+   $label_for_faces{$_}=$label1;
+
+   $button1->signal_connect( 'clicked', \&SelectFile, "$_" );
+   $table->attach_defaults($button1,1,2,$line,$line+1 ) ;
+   $button1->show;
+   
+   if ($previous) {
+   $button_copy->signal_connect('clicked' , \&FileCopy, [ "$_" , $previous ]);
+   $table->attach_defaults( $button_copy,2 ,3 , $line , $line+1 ) ;
+   $button_copy->show;
+   }
+
+   $line++;
+   $previous=$_;
 };
+$box->pack_start( $table , TRUE , TRUE , 0 );
+$table->show;
+
+
+#foreach (qw(faces sommet dessous inventaire)) {
+#  # creation de la box h
+#  my $box2 =  Gtk2::HBox->new( FALSE, 0 );
+#  my $label1 = Gtk2::Label->new("!");
+#  my $button1= Gtk2::Button->new("Changer $_");
+#  my $button_copy= Gtk2::Button->new("Comme $previous");
+#  $button1->signal_connect( 'clicked', \&SelectFile, "$_" );
+#  $button_copy->signal_connect('clicked' , \&FileCopy, [ "$_" , $previous ]);
+#  $box2->pack_start( $label1      , TRUE, TRUE, 0) ;
+#  $box2->pack_start( $button1     , TRUE, TRUE, 0) ;
+#  $box2->pack_start( $button_copy , TRUE , TRUE , 0);
+#  $box->pack_start( $box2 , TRUE, TRUE , 0);
+#  $label1->show();
+#  $button1->show();
+#  $button_copy->show() if $previous;
+#  $box2->show;
+#  $label_for_faces{$_}=$label1;
+#  $previous = $_;
+#};
+
+my $box2 =  Gtk2::HBox->new( FALSE, 5 );
+
 # Création d'un bouton qui s'appellera 'bouton 1'
 my $button1 = Gtk2::Button->new("Faire");
 
@@ -61,15 +93,17 @@ my $button1 = Gtk2::Button->new("Faire");
 $button1->signal_connect( 'clicked', \&DoImage );
 
 # On place le bouton 1 dans notre boîte
-$box->pack_start( $button1, TRUE, TRUE, 0 );
+$box2->pack_start($button1, TRUE, TRUE, 0 );
+$box->pack_start( $box2, TRUE, TRUE, 0 );
 
 # On montre le bouton
 $button1->show;
+$box2->show;
 
 # On refait la même chose pour placer un second bouton dans la boîte
 my $button2 = Gtk2::Button->new("Abandonner");
 $button2->signal_connect( 'clicked', \&DestroyWindow );
-$box->pack_start( $button2, TRUE, TRUE, 0 );
+$box2->pack_start( $button2, TRUE, TRUE, 0 );
 $button2->show;
 
 # On montre la boîte
@@ -83,7 +117,6 @@ Gtk2->main;
 ### La fonction de rappel qui est appelé quand on a cliqué sur un bouton.
 sub DoImage {
 	my ( $widget ) = @_;
-	use Data::Dumper ; print Dumper \%files;
 	MakeImage();
 }
 ### La fonction de rappel appelé par l'événement "delete event".
@@ -92,8 +125,6 @@ sub CloseWindow {
 
 	# On récupère le nom de l'événement
 	my $name = $event->type;
-	print "L'événement $name s'est produit !\n";
-	print "$message \n";
 	return FALSE;
 }
 ### La fonction de rappel pour fermer la fenêtre
@@ -104,7 +135,6 @@ sub DestroyWindow {
 
 sub SelectFile {
 	my ( $widget, $pressed_button ) = @_;
-	print("Vous avez pressé le $pressed_button ! !\n");
 	my $file_dialog = Gtk2::FileSelection->new($pressed_button);
 	#$file_dialog->signal_connect("destroy" , sub {  }) ;
         $file_dialog->cancel_button->signal_connect("clicked" , sub { $file_dialog->hide() });
@@ -123,7 +153,6 @@ sub SelectFile {
 sub FileCopy {
 	my ($widget , $data ) = @_ ; 
 	my ( $to , $from ) = @$data ; 
-	print "$from $to\n";
 	if ($label_for_faces{$to}) {
             $files{$to} = $files{$from} ; 
 	    $label_for_faces{$to}->set_text($files{$to});
@@ -134,14 +163,15 @@ sub FileCopy {
 sub MakeImage {
 	use Image::Magick ;
         my @images = () ; 
-        my %need =( "12" => [ 'faces'  , 180 ] #left
-		  , "21" => [ 'faces'  , 270 ] #front
+        my %need =( "21" => [ 'faces'  , 180 ] #left
+		  , "12" => [ 'faces', 90 ] #front
                   , "22" => [ 'sommet' , 0   ] #top
-                  , "23" => [ 'faces'  , 90  ] #back
-                  , "24" => [ 'dessous', 180 ] #bottom
-		  , "32" => [ 'faces'  , 0   ] #right
+                  , "32" => [ 'faces'  , 270  ] #back
+                  , "42" => [ 'dessous'  , 180 ] #bottom
+		  , "23" => [ 'faces'  , 0   ] #right
                   , "44" => [ 'inventaire',0 ] #inventory image
 		  );
+        my $colone = Image::Magick->new;
 	foreach my $line (qw(1 2 3 4)) {
 	  my $ligne = Image::Magick->new;
 	  foreach my $colm (qw(1 2 3 4)) {
@@ -149,8 +179,8 @@ sub MakeImage {
 	    	my $image = Image::Magick->new ;
 		my $x=$image->Read($files{$need{"$line$colm"}->[0]});
 		$image->Resize( width=>128 , height=>128);
-		if ($files{$need{"$line$colm"}->[1]}) {
-		  $image->Rotate($files{$need{"$line$colm"}->[1]});
+		if ($need{"$line$colm"}->[1]) {
+		  $image->Rotate($need{"$line$colm"}->[1]);
 		};
 		push @$ligne , @$image ;
 	    } else {
@@ -160,10 +190,10 @@ sub MakeImage {
 		push @$ligne , @$image ;
 	    }
 	  }
-	  $ligne->Append();
-	  $ligne->write("t$_.png");
-	  print "t$line.png\n" ;
-		$ligne->display();
+          my $new = $ligne->Append();
+          push @$colone , $new ;
 	};
-  print "done\n";
+	my $ans = $colone->append( 'stack' => 'false' );
+        $ans->display();
+  	exit 0;
 }
